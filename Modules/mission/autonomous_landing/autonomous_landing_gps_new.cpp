@@ -44,14 +44,6 @@ Eigen::Vector3f camera_offset;
 float distance_to_setpoint;
 float distance_thres;
 //---------------------------------------Output---------------------------------------------
-
-//*****************************下面是我改动的地方*********************
-int  iiiii=0;  
-
-//float zzzzz=0;
-//float  jjjjj;  
-
-//*****************************上面是我改动的地方*********************
 prometheus_msgs::ControlCommand Command_Now;                               //发送给控制模块 [px4_pos_controller.cpp]的命令
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>函数声明<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 void printf_param();                                                                 //打印各项参数以供检查
@@ -206,26 +198,8 @@ int main(int argc, char **argv)
     pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, "Takeoff to predefined position.");
     Command_Now.Command_ID = 1;
     Command_Now.source = NODE_NAME;
-//*****************************下面是我改动的地方*********************
- //  iiiii=iiiii+1;
-
- //  if(iiiii<2)
- // {
- //  jjjjj=_DroneState.position[2];
- //  }
-
-   
-    //while( _DroneState.position[2] < 0.3)
-  //  while( abs(_DroneState.position[2]-jjjjj)< 0.3)
-     
- //  while( _DroneState.position[2] < 1)
- //   int  iiiii=0; 
- //   zzzzz=_DroneState.position[2];
-   while(iiiii == 0)
+    while( _DroneState.position[2] < 0.3)
     {
-        iiiii=iiiii + 3;
- //       zzzzz=_DroneState.position[2];
-//*****************************上面是我改动的地方*********************
         /*
 	Command_Now.header.stamp = ros::Time::now();
         Command_Now.Mode  = prometheus_msgs::ControlCommand::Idle;
@@ -241,28 +215,17 @@ int main(int argc, char **argv)
         Command_Now.Command_ID = Command_Now.Command_ID + 1;
         Command_Now.source = NODE_NAME;
         Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_POS;
-//*****************************下面是我改动的地方*********************
-    // Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
-     Command_Now.Reference_State.Move_frame   = prometheus_msgs::PositionReference::BODY_FRAME;
-//*****************************上面是我改动的地方*********************   
-//*****************************下面是我改动的地方*********************    
+        //Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+        Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::BODY_FRAME;
         Command_Now.Reference_State.position_ref[0]     = start_point_x;
-       Command_Now.Reference_State.position_ref[1]     = start_point_y;
-      //  Command_Now.Reference_State.position_ref[0]     = _DroneState.position[0] + start_point_x;
-     //   Command_Now.Reference_State.position_ref[1]     = _DroneState.position[1] + start_point_y;
+        Command_Now.Reference_State.position_ref[1]     = start_point_y;
         Command_Now.Reference_State.position_ref[2]     = start_point_z;
-      //  Command_Now.Reference_State.position_ref[2]     = _DroneState.position[2] + start_point_z;
-//*****************************上面是我改动的地方********************* 
         Command_Now.Reference_State.yaw_ref             = 0;
         command_pub.publish(Command_Now);
         cout << "Takeoff ..."<<endl;
         ros::Duration(3.0).sleep();
 
         ros::spinOnce();
-//*****************************下面是我改动的地方********************* 
-     //   break;
-//*****************************上面是我改动的地方*********************
-
     }
 
     // 先读取一些飞控的数据
@@ -313,6 +276,7 @@ int main(int argc, char **argv)
         if(distance_to_setpoint < distance_thres)
         {
             Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
+            //Command_Now.Mode = prometheus_msgs::ControlCommand::Disarm;
             cout <<"[autonomous_landing]: Catched the Landing Pad, distance_to_setpoint : "<< distance_to_setpoint << " [m] " << endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Catched the Landing Pad.");
         }else if(!landpad_det.is_detected)
@@ -323,11 +287,14 @@ int main(int argc, char **argv)
             pos_des_prev[2] = _DroneState.position[2];
             cout <<"[autonomous_landing]: Lost the Landing Pad. "<< endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Lost the Landing Pad.");
-        }else if(abs(landpad_det.Detection_info.position[2]) < 0.5)
+        }else if(abs(landpad_det.pos_body_frame[2]) < 0.4)//(_DroneState.position[2]<0.4)
         {
             cout <<"[autonomous_landing]: Reach the lowest height. "<< endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Reach the lowest height.");
             Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
+           // Command_Now.Mode = prometheus_msgs::ControlCommand::Disarm;
+           // ros::Duration(4.0).sleep();
+           // landpad_det.pos_body_frame[2]=0;
         }else
         {
             cout <<"[autonomous_landing]: Tracking the Landing Pad, distance_to_setpoint : "<< distance_to_setpoint << " [m] " << endl;
@@ -458,3 +425,4 @@ void printf_param()
     cout << "start_point_y : "<< start_point_y << endl;
     cout << "start_point_z : "<< start_point_z << endl;
 }
+

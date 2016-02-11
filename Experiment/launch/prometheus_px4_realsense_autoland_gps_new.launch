@@ -62,7 +62,7 @@
     </node>
  
     <!-- run the autonomous_landing.cpp -->
-	<node pkg="prometheus_mission" type="autonomous_landing_gps" name="autonomous_landing_gps" output="screen" launch-prefix="gnome-terminal --">
+	<node pkg="prometheus_mission" type="autonomous_landing_gps_new" name="autonomous_landing_gps_new" output="screen" launch-prefix="gnome-terminal --">
 		<rosparam command="load" file="$(find prometheus_mission)/autonomous_landing/autonomous_landing.yaml" />	
 	</node>
  

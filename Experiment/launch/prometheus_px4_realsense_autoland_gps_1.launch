@@ -16,7 +16,7 @@
 	<!-- run the px4_pos_estimator.cpp -->
 	<node pkg="prometheus_control" type="px4_pos_estimator" name="px4_pos_estimator" output="screen">
 		<!-- 0 for vicon， 1 for 激光SLAM, 2 for gazebo ground truth(仿真用) -->
-		<param name="input_source" value="9" />
+		<param name="input_source" value="3" />
 	</node>
 	
 	<!-- run the px4_pos_controller.cpp -->
@@ -25,11 +25,11 @@
 	</node>
 	
 	<!-- run the ground_station.cpp -->
-	<node pkg="prometheus_station" type="ground_station" name="ground_station" output="screen" launch-prefix="gnome-terminal --tab --">	
+	<node pkg="prometheus_control" type="ground_station" name="ground_station" output="screen" launch-prefix="gnome-terminal --tab --">	
 	</node>
  
 	<!-- run the ground_station_msg.cpp -->
-	<node pkg="prometheus_station" type="ground_station_msg" name="ground_station_msg" output="screen" launch-prefix="gnome-terminal --tab --">	
+	<node pkg="prometheus_control" type="ground_station_msg" name="ground_station_msg" output="screen" launch-prefix="gnome-terminal --tab --">	
 	</node>
  
 	<include file="$(find prometheus_experiment)/launch/rs_t265.launch">	
@@ -62,7 +62,7 @@
     </node>
  
     <!-- run the autonomous_landing.cpp -->
-	<node pkg="prometheus_mission" type="autonomous_landing_gps" name="autonomous_landing_gps" output="screen" launch-prefix="gnome-terminal --">
+	<node pkg="prometheus_mission" type="autonomous_landing_gps_1" name="autonomous_landing_gps_1" output="screen" launch-prefix="gnome-terminal --">
 		<rosparam command="load" file="$(find prometheus_mission)/autonomous_landing/autonomous_landing.yaml" />	
 	</node>
  

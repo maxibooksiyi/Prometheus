@@ -48,7 +48,11 @@ float distance_thres;
 //*****************************下面是我改动的地方*********************
 int  iiiii=0;  
 
-//float zzzzz=0;
+float  zzzzz=0;
+float  zzzzz1=0;
+
+int lost_time = 0;
+
 //float  jjjjj;  
 
 //*****************************上面是我改动的地方*********************
@@ -220,11 +224,11 @@ int main(int argc, char **argv)
      
  //  while( _DroneState.position[2] < 1)
  //   int  iiiii=0; 
- //   zzzzz=_DroneState.position[2];
    while(iiiii == 0)
     {
         iiiii=iiiii + 3;
- //       zzzzz=_DroneState.position[2];
+	zzzzz=_DroneState.position[2];
+        zzzzz1=zzzzz+start_point_z;
 //*****************************上面是我改动的地方*********************
         /*
 	Command_Now.header.stamp = ros::Time::now();
@@ -317,13 +321,55 @@ int main(int argc, char **argv)
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Catched the Landing Pad.");
         }else if(!landpad_det.is_detected)
         {
-            Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+//            Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
             pos_des_prev[0] = _DroneState.position[0];
             pos_des_prev[1] = _DroneState.position[1];
             pos_des_prev[2] = _DroneState.position[2];
-            cout <<"[autonomous_landing]: Lost the Landing Pad. "<< endl;
-            pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Lost the Landing Pad.");
-        }else if(abs(landpad_det.Detection_info.position[2]) < 0.5)
+//            cout <<"[autonomous_landing]: Lost the Landing Pad. "<< endl;
+//            pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Lost the Landing Pad.");
+              
+              lost_time ++ ;
+			  if(lost_time < 10.0)
+                {
+                    Command_Now.header.stamp = ros::Time::now();
+                    Command_Now.Command_ID   = Command_Now.Command_ID + 1;
+                    Command_Now.source = NODE_NAME;
+                    Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+
+                    ros::Duration(0.4).sleep();
+                }else
+                {
+                    Command_Now.header.stamp                        = ros::Time::now();
+                    Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
+                    Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
+                    Command_Now.source                              = NODE_NAME;
+                    Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_VEL;
+                    Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::BODY_FRAME;
+                    Command_Now.Reference_State.velocity_ref[0]     = 0.0;
+                    Command_Now.Reference_State.velocity_ref[1]     = 0.0;
+                    Command_Now.Reference_State.velocity_ref[2]     = 0.1;
+                    Command_Now.Reference_State.yaw_ref             = 0;
+
+                    // 如果上升超过原始高度，则认为任务失败，则直接降落
+                    if(_DroneState.position[2] >= zzzzz1)
+                    {
+//                        exec_state = LANDING;
+                        lost_time = 0;
+						Command_Now.header.stamp = ros::Time::now();
+                        Command_Now.Command_ID   = Command_Now.Command_ID + 1;
+                        Command_Now.source = NODE_NAME;
+                        Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
+                        command_pub.publish(Command_Now);
+                      //  message = "Mission failed, landing... ";
+                     //   cout << message <<endl;
+                     //   pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, message);
+						ros::Duration(1.0).sleep();
+            
+                    }
+                }
+                command_pub.publish(Command_Now);
+				
+        }else if(abs(landpad_det.pos_body_enu_frame[2]-zzzzz) < 0.3)
         {
             cout <<"[autonomous_landing]: Reach the lowest height. "<< endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Reach the lowest height.");

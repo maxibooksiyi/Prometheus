@@ -20,13 +20,14 @@
 #include "message_utils.h"
 #include "Position_Controller/pos_controller_cascade_PID.h"
 #include "Position_Controller/pos_controller_PID.h"
+#include "Position_Controller/pos_controller_Passivity.h"
 #include "Filter/LowPassFilter.h"
 #define NODE_NAME "pos_controller"
 
 using namespace std;
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>变量声明<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 float cur_time;                                             //程序运行时间
-int controller_number;                                      //所选择控制器编号
+string controller_type;                                      //控制器类型
 float Takeoff_height;                                       //默认起飞高度
 float Disarm_height;                                        //自动上锁高度
 float Land_speed;                                           //降落速度
@@ -44,7 +45,7 @@ prometheus_msgs::ControlCommand Command_Last;                     //无人机上
 prometheus_msgs::ControlOutput _ControlOutput;
 prometheus_msgs::AttitudeReference _AttitudeReference;           //位置控制器输出，即姿态环参考量
 prometheus_msgs::Message message;
-prometheus_msgs::LogMessage LogMessage;
+prometheus_msgs::LogMessageControl LogMessage;
 
 //RVIZ显示：期望位置
 geometry_msgs::PoseStamped ref_pose_rviz;
@@ -131,13 +132,13 @@ int main(int argc, char **argv)
     message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
 
     // 【发布】用于log的消息
-    log_message_pub = nh.advertise<prometheus_msgs::LogMessage>("/prometheus/topic_for_log", 10);
+    log_message_pub = nh.advertise<prometheus_msgs::LogMessageControl>("/prometheus/log/control", 10);
 
     // 10秒定时打印，以确保程序在正确运行
     ros::Timer timer = nh.createTimer(ros::Duration(10.0), timerCallback);
 
     // 参数读取
-    nh.param<int>("controller_number", controller_number, 0);
+    nh.param<string>("controller_type", controller_type, "default");
     nh.param<float>("Takeoff_height", Takeoff_height, 1.5);
     nh.param<float>("Disarm_height", Disarm_height, 0.15);
     nh.param<float>("Land_speed", Land_speed, 0.2);
@@ -161,16 +162,20 @@ int main(int argc, char **argv)
     pos_controller_cascade_PID pos_controller_cascade_pid;
     // 可以设置自定义位置环控制算法
     pos_controller_PID pos_controller_pid;
+    pos_controller_passivity pos_controller_passivity;
 
     printf_param();
 
-    if(controller_number == 0)
+    if(controller_type == "default")
     {
         pos_controller_cascade_pid.printf_param();
         
-    }else if(controller_number == 1)
+    }else if(controller_type == "pid")
     {
         pos_controller_pid.printf_param();
+    }else if(controller_type == "passivity")
+    {
+        pos_controller_passivity.printf_param();
     }
 
     // 初始化命令-
@@ -367,7 +372,7 @@ int main(int argc, char **argv)
         if(Command_Now.Mode != prometheus_msgs::ControlCommand::Idle)
         {
             //选择控制器
-            if(controller_number == 0)
+            if(controller_type == "default")
             {
                 //轨迹追踪控制,直接改为PID控制器
                 if(Command_Now.Reference_State.Move_mode != prometheus_msgs::PositionReference::TRAJECTORY)
@@ -379,9 +384,12 @@ int main(int argc, char **argv)
                     pub_message(message_pub, prometheus_msgs::Message::WARN, NODE_NAME, "CPID NOT SUPPOORT TRAJECTORY TRACKING.");
                 }
                 
-            }else if(controller_number == 1)
+            }else if(controller_type == "pid")
             {
                 _ControlOutput = pos_controller_pid.pos_controller(_DroneState, Command_Now.Reference_State, dt);
+            }else if(controller_type == "passivity")
+            {
+                _ControlOutput = pos_controller_passivity.pos_controller(_DroneState, Command_Now.Reference_State, dt);
             }
             
         }
@@ -403,11 +411,13 @@ int main(int argc, char **argv)
         rivz_ref_pose_pub.publish(ref_pose_rviz);
 
         //发布log消息，可用rosbag记录
+        LogMessage.control_type = 0;
         LogMessage.time = cur_time;
         LogMessage.Drone_State = _DroneState;
         LogMessage.Control_Command = Command_Now;
         LogMessage.Control_Output = _ControlOutput;
         LogMessage.Attitude_Reference = _AttitudeReference;
+        LogMessage.ref_pose = ref_pose_rviz;
         log_message_pub.publish(LogMessage);
 
         Command_Last = Command_Now;
@@ -420,7 +430,7 @@ int main(int argc, char **argv)
 void printf_param()
 {
     cout <<">>>>>>>>>>>>>>>>>>>>>>>> px4_pos_controller Parameter <<<<<<<<<<<<<<<<<<<<<<" <<endl;
-    cout << "controller_number: "<< controller_number <<endl;
+    cout << "controller_type: "<< controller_type <<endl;
     cout << "Takeoff_height   : "<< Takeoff_height<<" [m] "<<endl;
     cout << "Disarm_height    : "<< Disarm_height <<" [m] "<<endl;
     cout << "Land_speed       : "<< Land_speed <<" [m/s] "<<endl;

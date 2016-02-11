@@ -31,7 +31,11 @@ add_message_files(
   ControlOutput.msg
   Message.msg
   LogMessage.msg
+  LogMessageControl.msg
+  LogMessagePlanning.msg
+  LogMessageDetection.msg
   SwarmCommand.msg
+	Formation.msg
 )
 
 add_action_files(
