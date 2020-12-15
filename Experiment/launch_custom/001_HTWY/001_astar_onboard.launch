@@ -69,7 +69,7 @@
         <!-- 二维平面规划 -->
         <param name="swarm_planner/is_2D" value="true" type="bool"/>
         <!-- ２维高度，建议与起飞高度一致 -->
-        <param name="swarm_planner/fly_height_2D" value="1.0" type="double"/>
+        <param name="swarm_planner/fly_height_2D" value="0.5" type="double"/>
         <!-- 停止距离 -->
         <param name="swarm_planner/safe_distance" value="0.01" type="double"/>
         <param name="swarm_planner/time_per_path" value="1.5" type="double"/>

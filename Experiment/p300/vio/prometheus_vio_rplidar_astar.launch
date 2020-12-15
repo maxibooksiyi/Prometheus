@@ -2,7 +2,7 @@
 	<!-- 启动MAVROS -->
 	<!-- 不同机载电脑,注意修改fcu_url至正确的端口号及波特率 -->
 	<node pkg="mavros" type="mavros_node" name="mavros" output="screen">
-		<param name="fcu_url" value="/dev/ttyTHS0:921600" />
+		<param name="fcu_url" value="/dev/ttyTHS2:921600" />
 		<param name="gcs_url" value="" />
 		<param name="target_system_id" value="1" />
 		<param name="target_component_id" value="1" />
@@ -27,7 +27,7 @@
     <node name="rplidarNode" pkg="rplidar_ros" type="rplidarNode" output="screen">	
         <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
         <param name="frame_id" value="lidar_link"/>
-        <param name="serial_baudrate"     type="int"    value="256000"/>
+        <param name="serial_baudrate"     type="int"    value="115200"/>
         <param name="inverted"            type="bool"   value="false"/>
         <param name="angle_compensate"    type="bool"   value="true"/>
         <remap from="/scan" to="/prometheus/sensors/2Dlidar_scan" />
@@ -60,7 +60,7 @@
         <!-- 二维平面规划 -->
         <param name="swarm_planner/is_2D" value="true" type="bool"/>
         <!-- ２维高度，建议与起飞高度一致 -->
-        <param name="swarm_planner/fly_height_2D" value="1.0" type="double"/>
+        <param name="swarm_planner/fly_height_2D" value="0.5" type="double"/>
         <!-- 停止距离 -->
         <param name="swarm_planner/safe_distance" value="0.01" type="double"/>
         <param name="swarm_planner/time_per_path" value="1.5" type="double"/>
