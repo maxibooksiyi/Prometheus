@@ -3,7 +3,7 @@
 #include <iostream>
 #include <mission_utils.h>
 #include "message_utils.h"
-
+ 
 using namespace std;
 # define NODE_NAME "circle_crossing"
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -27,9 +27,9 @@ void ellipse_det_cb(const prometheus_msgs::DetectionInfo::ConstPtr& msg)
     ellipse_det.pos_body_frame[0] =   ellipse_det.Detection_info.position[2] + FRONT_CAMERA_OFFSET_X;
     ellipse_det.pos_body_frame[1] = - ellipse_det.Detection_info.position[0] + FRONT_CAMERA_OFFSET_Y;
     ellipse_det.pos_body_frame[2] = - ellipse_det.Detection_info.position[1] + FRONT_CAMERA_OFFSET_Z;
-
+ 
     ellipse_det.pos_body_enu_frame = R_Body_to_ENU * ellipse_det.pos_body_frame;
-
+ 
     if(ellipse_det.Detection_info.detected)
     {
         ellipse_det.num_regain++;
@@ -39,19 +39,22 @@ void ellipse_det_cb(const prometheus_msgs::DetectionInfo::ConstPtr& msg)
         ellipse_det.num_regain = 0;
         ellipse_det.num_lost++;
     }
-
+ 
+//**************************下面是我修改的地方*****************************
     // 当连续一段时间无法检测到目标时，认定目标丢失
-    if(ellipse_det.num_lost > VISION_THRES)
+   // if(ellipse_det.num_lost > VISION_THRES)
+    if(ellipse_det.num_lost > 10)
     {
         ellipse_det.is_detected = false;
     }
-
+ 
     // 当连续一段时间检测到目标时，认定目标得到
-    if(ellipse_det.num_regain > VISION_THRES)
+   // if(ellipse_det.num_regain > VISION_THRES)
+    if(ellipse_det.num_regain > 3)
     {
         ellipse_det.is_detected = true;
     }
-
+//**************************上面是我修改的地方*****************************
 }
 void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
 {
@@ -68,22 +71,28 @@ int main(int argc, char **argv)
     //  方向定义： 识别算法发布的目标位置位于相机坐标系（从相机往前看，物体在相机右方x为正，下方y为正，前方z为正）
     //  标志位：   detected 用作标志位 ture代表识别到目标 false代表丢失目标
     ros::Subscriber ellipse_det_sub = nh.subscribe<prometheus_msgs::DetectionInfo>("/prometheus/object_detection/ellipse_det", 10, ellipse_det_cb);
-
+ 
     //【订阅】无人机当前状态
     ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
-
+ 
     // 【发布】用于地面站显示的提示消息
     ros::Publisher message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message/main", 10);
     
     // 【发布】发送给控制模块 [px4_pos_controller.cpp]的命令
     command_pub = nh.advertise<prometheus_msgs::ControlCommand>("/prometheus/control_command", 10);
-
+ 
     message_pub = nh.advertise<prometheus_msgs::Message>("/prometheus/message", 10);
-
-    nh.param<float>("kpx_circle_track", kpx_circle_track, 0.1);
-    nh.param<float>("kpy_circle_track", kpy_circle_track, 0.1);
-    nh.param<float>("kpz_circle_track", kpz_circle_track, 0.1);
-
+ 
+//**************************下面是我修改的地方*****************************
+    //nh.param<float>("kpx_circle_track", kpx_circle_track, 0.1);
+    //nh.param<float>("kpy_circle_track", kpy_circle_track, 0.1);
+    //nh.param<float>("kpz_circle_track", kpz_circle_track, 0.1);
+    nh.param<float>("kpx_circle_track", kpx_circle_track, 0.6);
+    nh.param<float>("kpy_circle_track", kpy_circle_track, 0.6);
+    nh.param<float>("kpz_circle_track", kpz_circle_track, 0.6);
+ 
+ 
+//**************************上面是我修改的地方*****************************
     //固定的浮点显示
     cout.setf(ios::fixed);
     //setprecision(n) 设显示小数精度为n位
@@ -94,7 +103,7 @@ int main(int argc, char **argv)
     cout.setf(ios::showpoint);
     // 强制显示符号
     cout.setf(ios::showpos);
-
+ 
     // Waiting for input
     int start_flag = 0;
     while(start_flag == 0)
@@ -103,7 +112,7 @@ int main(int argc, char **argv)
         cout << "Please enter 1 to takeoff the drone..."<<endl;
         cin >> start_flag;
     }
-
+ 
     // 起飞
     Command_Now.Command_ID = 1;
     Command_Now.source = NODE_NAME;
@@ -127,15 +136,18 @@ int main(int argc, char **argv)
         Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
         Command_Now.Reference_State.position_ref[0]     = 0.0;
         Command_Now.Reference_State.position_ref[1]     = 0.0;
-        Command_Now.Reference_State.position_ref[2]     = 1.5;
+//**************************下面是我修改的地方*****************************
+        //Command_Now.Reference_State.position_ref[2]     = 1.5;
+        Command_Now.Reference_State.position_ref[2]     = 1.2;
+//**************************上面是我修改的地方*****************************
         Command_Now.Reference_State.yaw_ref             = 0.0;
         command_pub.publish(Command_Now);
         cout << "Takeoff ..."<<endl;
         ros::Duration(3.0).sleep();
-
+ 
         ros::spinOnce();
     }
-
+ 
     while (ros::ok())
     {
         cout << ">>>>>>>>>>>>>>>>>>>>>>>>>>>Circle Crossing Mission<<<<<<<<<<<<<<<<<<<<<<<<<"<<endl;
@@ -144,7 +156,7 @@ int main(int argc, char **argv)
         {
             cout << "Please enter 1 to start the mission ..."<<endl;
             cin >> start_flag;
-
+ 
             if (start_flag == 1)
             {
                 State_Machine = 1;
@@ -158,26 +170,32 @@ int main(int argc, char **argv)
             printf_detection_result(ellipse_det);
         }else if(State_Machine == 2)
         {
-            crossing();
+//**************************下面是我修改的地方*****************************
+            //crossing();
+            tracking();
+//**************************上面是我修改的地方*****************************
             cout << "Crossing the circle..." <<  endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Crossing the circle...");
-
+ 
         }else if(State_Machine == 3)
         {
-            return_start_point();
+//**************************下面是我修改的地方*****************************
+            //return_start_point();
+            tracking();
+//**************************上面是我修改的地方*****************************
             cout << "Returning the start point..." <<  endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Returning the start point...");
         }
-
+ 
         //回调
         ros::spinOnce();
         ros::Duration(0.05).sleep();
     }
-
+ 
     return 0;
-
+ 
 }
-
+ 
 void tracking()
 {
     Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
@@ -185,22 +203,40 @@ void tracking()
     Command_Now.source = NODE_NAME;
     Command_Now.Reference_State.Move_mode           = prometheus_msgs::PositionReference::XYZ_VEL;
     Command_Now.Reference_State.Move_frame          = prometheus_msgs::PositionReference::ENU_FRAME;
+ //**************************下面是我修改的地方*****************************  
     Command_Now.Reference_State.position_ref[0]     = 0;
     Command_Now.Reference_State.position_ref[1]     = 0;
     Command_Now.Reference_State.position_ref[2]     = 0;
-    Command_Now.Reference_State.velocity_ref[0]     = kpx_circle_track * ellipse_det.pos_body_enu_frame[0];
-    Command_Now.Reference_State.velocity_ref[1]     = kpy_circle_track * ellipse_det.pos_body_enu_frame[1];
+ 
+    Command_Now.Reference_State.velocity_ref[0]     = kpx_circle_track * (ellipse_det.pos_body_enu_frame[0]-2);
+ 
+    Command_Now.Reference_State.velocity_ref[1]     = kpy_circle_track * (ellipse_det.pos_body_enu_frame[1]);
+    //Command_Now.Reference_State.velocity_ref[2]     = kpz_circle_track * ellipse_det.pos_body_enu_frame[2];
     Command_Now.Reference_State.velocity_ref[2]     = kpz_circle_track * ellipse_det.pos_body_enu_frame[2];
+ 
     Command_Now.Reference_State.yaw_ref             = 0;
-
+ 
     command_pub.publish(Command_Now);   
-
+ 
     if(abs(ellipse_det.pos_body_enu_frame[0]) < 1)
     {
         State_Machine = 2;
+    //Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
     }
+ 
+     if(ellipse_det.is_detected == false)
+    {
+     Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+    }
+ 
+//     if((abs(ellipse_det.pos_body_enu_frame[0]-2)<0.2)&&(abs(ellipse_det.pos_body_enu_frame[0])<0.2)&&abs(ellipse_det.pos_body_enu_frame[0])<0.2))
+//    {
+//      Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+//    }
+ 
+//**************************上面是我修改的地方*****************************
 }
-
+ 
 void crossing()
 {
     Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
@@ -212,14 +248,14 @@ void crossing()
     Command_Now.Reference_State.position_ref[1]     = 0;
     Command_Now.Reference_State.position_ref[2]     = 0;
     Command_Now.Reference_State.yaw_ref             = 0;
-
+ 
     command_pub.publish(Command_Now);   
-
+ 
     ros::Duration(5.0).sleep();
-
+ 
     State_Machine = 3;
 }
-
+ 
 void return_start_point()
 {
     Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
@@ -231,11 +267,11 @@ void return_start_point()
     Command_Now.Reference_State.position_ref[1]     = 3.0;
     Command_Now.Reference_State.position_ref[2]     = 0.0;
     Command_Now.Reference_State.yaw_ref             = 0.0;
-
+ 
     command_pub.publish(Command_Now);   
-
+ 
     ros::Duration(3.0).sleep();
-
+ 
     Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
     Command_Now.Command_ID                          = Command_Now.Command_ID + 1;
     Command_Now.source = NODE_NAME;
@@ -245,11 +281,10 @@ void return_start_point()
     Command_Now.Reference_State.position_ref[1]     = 0.0;
     Command_Now.Reference_State.position_ref[2]     = 1.5;
     Command_Now.Reference_State.yaw_ref             = 0.0;
-
+ 
     command_pub.publish(Command_Now);   
-
+ 
     ros::Duration(5.0).sleep();
-
+ 
     State_Machine = 0;
 }
-
