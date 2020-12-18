@@ -21,12 +21,12 @@
 using namespace std;
 using namespace Eigen;
 
-#define LANDPAD_HEIGHT 0.99
+#define LANDPAD_HEIGHT 0.0
 #define NODE_NAME "autonomous_landing"
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>全 局 变 量<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 //---------------------------------------Drone---------------------------------------------
 prometheus_msgs::DroneState _DroneState;   
-nav_msgs::Odometry GroundTruth;
+//nav_msgs::Odometry GroundTruth;
 Eigen::Matrix3f R_Body_to_ENU;
 std_msgs::Bool flag_start;
 //---------------------------------------Vision---------------------------------------------
@@ -35,7 +35,7 @@ Eigen::Vector3f pos_des_prev;
 
 float kpx_land,kpy_land,kpz_land;                                                 //控制参数 - 比例参数
 float start_point_x,start_point_y,start_point_z;
-int debug_mode;
+//int debug_mode;
 bool use_ukf;
 bool moving_target;
 Eigen::VectorXd state_fusion;
@@ -100,10 +100,10 @@ void drone_state_cb(const prometheus_msgs::DroneState::ConstPtr& msg)
     R_Body_to_ENU = get_rotation_matrix(_DroneState.attitude[0], _DroneState.attitude[1], _DroneState.attitude[2]);
 }
 
-void groundtruth_cb(const nav_msgs::Odometry::ConstPtr& msg)
-{
-    GroundTruth = *msg;
-}
+//void groundtruth_cb(const nav_msgs::Odometry::ConstPtr& msg)
+//{
+    //GroundTruth = *msg;
+//}
 
 void switch_cb(const std_msgs::Bool::ConstPtr& msg)
 {
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 
     ros::Subscriber drone_state_sub = nh.subscribe<prometheus_msgs::DroneState>("/prometheus/drone_state", 10, drone_state_cb);
 
-    ros::Subscriber groundtruth_sub = nh.subscribe<nav_msgs::Odometry>("/ground_truth/landing_pad", 10, groundtruth_cb);
+    //ros::Subscriber groundtruth_sub = nh.subscribe<nav_msgs::Odometry>("/ground_truth/landing_pad", 10, groundtruth_cb);
 
     ros::Subscriber switch_sub = nh.subscribe<std_msgs::Bool>("/prometheus/switch/landing", 10, switch_cb);
 
@@ -138,7 +138,10 @@ int main(int argc, char **argv)
 //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>参数读取<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     //追踪距离阈值
-    nh.param<float>("distance_thres", distance_thres, 0.2);
+//*****************************下面是我改动的地方*********************
+   // nh.param<float>("distance_thres", distance_thres, 0.2);
+      nh.param<float>("distance_thres", distance_thres, 0.1);
+//*****************************上面是我改动的地方*********************
 
     //是否使用UKF
     nh.param<bool>("use_ukf", use_ukf, false);
@@ -147,17 +150,22 @@ int main(int argc, char **argv)
     nh.param<bool>("moving_target", moving_target, false);
 
     // DEBUG 模式
-    nh.param<int>("debug_mode", debug_mode, 0);
+    //nh.param<int>("debug_mode", debug_mode, 0);
 
     //追踪控制参数
     nh.param<float>("kpx_land", kpx_land, 0.1);
     nh.param<float>("kpy_land", kpy_land, 0.1);
-    nh.param<float>("kpz_land", kpz_land, 0.1);
-
+//*****************************下面是我改动的地方*********************
+    //nh.param<float>("kpz_land", kpz_land, 0.1);
+    nh.param<float>("kpz_land", kpz_land, 0.01);
+//*****************************上面是我改动的地方*********************
 
     nh.param<float>("start_point_x", start_point_x, 0.0);
     nh.param<float>("start_point_y", start_point_y, 0.0);
-    nh.param<float>("start_point_z", start_point_z, 2.0);
+//*****************************下面是我改动的地方*********************
+   // nh.param<float>("start_point_z", start_point_z, 2.0);
+    nh.param<float>("start_point_z", start_point_z, 1.0);
+//*****************************上面是我改动的地方*********************
 
     //ukf用于估计目标运动状态，此处假设目标为恒定转弯速率和速度模型（CTRV）模型
     UKF_CAR UKF_CAR;
@@ -192,7 +200,8 @@ int main(int argc, char **argv)
     Command_Now.source = NODE_NAME;
     while( _DroneState.position[2] < 0.3)
     {
-        Command_Now.header.stamp = ros::Time::now();
+        /*
+	Command_Now.header.stamp = ros::Time::now();
         Command_Now.Mode  = prometheus_msgs::ControlCommand::Idle;
         Command_Now.Command_ID = Command_Now.Command_ID + 1;
         Command_Now.source = NODE_NAME;
@@ -200,7 +209,7 @@ int main(int argc, char **argv)
         command_pub.publish(Command_Now);   
         cout << "Switch to OFFBOARD and arm ..."<<endl;
         ros::Duration(5.0).sleep();
-        
+        */
         Command_Now.header.stamp                    = ros::Time::now();
         Command_Now.Mode                                = prometheus_msgs::ControlCommand::Move;
         Command_Now.Command_ID = Command_Now.Command_ID + 1;
@@ -218,7 +227,6 @@ int main(int argc, char **argv)
         ros::spinOnce();
     }
 
-
     // 先读取一些飞控的数据
     for(int i=0;i<10;i++)
     {
@@ -231,6 +239,7 @@ int main(int argc, char **argv)
     pos_des_prev[2] = _DroneState.position[2];
 
     ros::Duration(3.0).sleep();
+
 
     while (ros::ok())
     {
@@ -265,7 +274,7 @@ int main(int argc, char **argv)
         distance_to_setpoint = landpad_det.pos_body_enu_frame.norm();
         if(distance_to_setpoint < distance_thres)
         {
-            Command_Now.Mode = prometheus_msgs::ControlCommand::Disarm;
+            Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
             cout <<"[autonomous_landing]: Catched the Landing Pad, distance_to_setpoint : "<< distance_to_setpoint << " [m] " << endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Catched the Landing Pad.");
         }else if(!landpad_det.is_detected)
@@ -280,7 +289,7 @@ int main(int argc, char **argv)
         {
             cout <<"[autonomous_landing]: Reach the lowest height. "<< endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Reach the lowest height.");
-            Command_Now.Mode = prometheus_msgs::ControlCommand::Disarm;
+            Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
         }else
         {
             cout <<"[autonomous_landing]: Tracking the Landing Pad, distance_to_setpoint : "<< distance_to_setpoint << " [m] " << endl;
@@ -334,10 +343,11 @@ int main(int argc, char **argv)
         Command_Now.header.stamp = ros::Time::now();
         Command_Now.Command_ID   = Command_Now.Command_ID + 1;
         Command_Now.source = NODE_NAME;
-        if (debug_mode == 0)
-        {
-            command_pub.publish(Command_Now);
-        }
+	command_pub.publish(Command_Now);
+        //if (debug_mode == 0)
+        //{
+            //command_pub.publish(Command_Now);
+        //}
         
 
         rate.sleep();
@@ -380,20 +390,20 @@ void printf_result()
         cout << "Detection_ENU(pos): " << landpad_det.pos_enu_frame[0] << " [m] "<< landpad_det.pos_enu_frame[1] << " [m] "<< landpad_det.pos_enu_frame[2] << " [m] "<<endl;
         cout << "Detection_ENU(yaw): " << landpad_det.att_enu_frame[2]/3.1415926 *180 << " [deg] "<<endl;
     }
-    if (debug_mode == 1)
-    {
-        cout << "Ground_truth(pos):  " << GroundTruth.pose.pose.position.x << " [m] "<< GroundTruth.pose.pose.position.y << " [m] "<< GroundTruth.pose.pose.position.z << " [m] "<<endl;
-        cout << "Detection_ENU(pos): " << landpad_det.pos_enu_frame[0] << " [m] "<< landpad_det.pos_enu_frame[1] << " [m] "<< landpad_det.pos_enu_frame[2] << " [m] "<<endl;
-        cout << "Detection_ENU(yaw): " << landpad_det.att_enu_frame[2]/3.1415926 *180 << " [deg] "<<endl;
-    }
+    //if (debug_mode == 1)
+    //{
+        //cout << "Ground_truth(pos):  " << GroundTruth.pose.pose.position.x << " [m] "<< GroundTruth.pose.pose.position.y << " [m] "<< GroundTruth.pose.pose.position.z << " [m] "<<endl;
+        //cout << "Detection_ENU(pos): " << landpad_det.pos_enu_frame[0] << " [m] "<< landpad_det.pos_enu_frame[1] << " [m] "<< landpad_det.pos_enu_frame[2] << " [m] "<<endl;
+        //cout << "Detection_ENU(yaw): " << landpad_det.att_enu_frame[2]/3.1415926 *180 << " [deg] "<<endl;
+    //}
 
-    tf::Quaternion quat;
-    tf::quaternionMsgToTF(GroundTruth.pose.pose.orientation, quat);
+    //tf::Quaternion quat;
+    //tf::quaternionMsgToTF(GroundTruth.pose.pose.orientation, quat);
  
-    double roll, pitch, yaw;//定义存储r\p\y的容器
-    tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);//进行转换
+    //double roll, pitch, yaw;//定义存储r\p\y的容器
+    //tf::Matrix3x3(quat).getRPY(roll, pitch, yaw);//进行转换
 
-    cout << "Ground_truth(yaw):  " << yaw/3.1415926 *180 << " [deg] "<<endl;
+    //cout << "Ground_truth(yaw):  " << yaw/3.1415926 *180 << " [deg] "<<endl;
 
     cout <<">>>>>>>>>>>>>>>>>>>>>>>>>Land Control State<<<<<<<<<<<<<<<<<<<<<<<<" <<endl;
 

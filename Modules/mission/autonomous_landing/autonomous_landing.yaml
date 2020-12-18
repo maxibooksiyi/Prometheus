@@ -9,14 +9,14 @@ use_ukf: false
 moving_target: false
 
 ##降落追踪 的比例参数
-kpx_land: 0.35
-kpy_land: 0.35
-kpz_land: 0.1
+kpx_land: 0.2
+kpy_land: 0.2
+kpz_land: 0.05
 
 ##降落起始点 静止目标建议起飞点：[1,2,6] 移动目标建议起飞点[-5,0,5]
-start_point_x: 1
-start_point_y: 1
-start_point_z: 4
+start_point_x: 0
+start_point_y: 0
+start_point_z: 1.2
 
 UKF_CAR:
     std_a_: 0.01
