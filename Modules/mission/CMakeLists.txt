@@ -120,6 +120,10 @@ add_executable(autonomous_landing_on_ground autonomous_landing/autonomous_landin
 add_dependencies(autonomous_landing_on_ground prometheus_mission_gencpp)
 target_link_libraries(autonomous_landing_on_ground ${catkin_LIBRARIES})
 
+add_executable(autonomous_landing_gps autonomous_landing/autonomous_landing_gps.cpp)
+add_dependencies(autonomous_landing_gps prometheus_mission_gencpp)
+target_link_libraries(autonomous_landing_gps ${catkin_LIBRARIES})
+
 
 #############
 ## Install ##
