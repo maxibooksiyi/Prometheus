@@ -138,7 +138,8 @@ int main(int argc, char **argv)
     nh.param<float>("Takeoff_height", Takeoff_height, 1.0);
     nh.param<float>("Disarm_height", Disarm_height, 0.15);
     nh.param<float>("Land_speed", Land_speed, 0.2);
-    nh.param<int>("Land_mode",Land_mode,0);
+   // nh.param<int>("Land_mode",Land_mode,0);
+    nh.param<int>("Land_mode",Land_mode,1);
 
     nh.param<float>("geo_fence/x_min", geo_fence_x[0], -100.0);
     nh.param<float>("geo_fence/x_max", geo_fence_x[1], 100.0);

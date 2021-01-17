@@ -132,6 +132,10 @@ add_executable(autonomous_landing_gps_new autonomous_landing/autonomous_landing_
 add_dependencies(autonomous_landing_gps_new prometheus_mission_gencpp)
 target_link_libraries(autonomous_landing_gps_new ${catkin_LIBRARIES})
 
+add_executable(autonomous_landing_gps_qiyuhua autonomous_landing/autonomous_landing_gps_qiyuhua.cpp)
+add_dependencies(autonomous_landing_gps_qiyuhua prometheus_mission_gencpp)
+target_link_libraries(autonomous_landing_gps_qiyuhua ${catkin_LIBRARIES})
+
 
 #############
 ## Install ##

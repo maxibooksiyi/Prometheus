@@ -18,6 +18,13 @@
 #include <ukf_car.h>
 #include "message_utils.h"
 
+//*****************************下面是我改动的地方*********************
+//#include "home/nvidia/Prometheus/Modules/control/include/state_from_mavros.h"
+//#include "command_to_mavros.h"
+//#include "prometheus_control_utils.h"
+//#include "message_utils.h"
+//*****************************上面是我改动的地方*********************
+
 using namespace std;
 using namespace Eigen;
 
@@ -35,6 +42,10 @@ Eigen::Vector3f pos_des_prev;
 
 float kpx_land,kpy_land,kpz_land;                                                 //控制参数 - 比例参数
 float start_point_x,start_point_y,start_point_z;
+
+//*****************************下面是我改动的地方*********************
+//int iiii=0;
+//*****************************上面是我改动的地方*********************
 //int debug_mode;
 bool use_ukf;
 bool moving_target;
@@ -276,12 +287,14 @@ int main(int argc, char **argv)
         if(distance_to_setpoint < distance_thres)
         {
             Command_Now.Mode = prometheus_msgs::ControlCommand::Land;
+            //iiii=iiii+1;
             //Command_Now.Mode = prometheus_msgs::ControlCommand::Disarm;
             cout <<"[autonomous_landing]: Catched the Landing Pad, distance_to_setpoint : "<< distance_to_setpoint << " [m] " << endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Catched the Landing Pad.");
-        }else if(!landpad_det.is_detected)
+        }else if(!landpad_det.is_detected)//((!landpad_det.is_detected)&&(iiii==0))
         {
             Command_Now.Mode = prometheus_msgs::ControlCommand::Hold;
+            //iiii=iiii+1;
             pos_des_prev[0] = _DroneState.position[0];
             pos_des_prev[1] = _DroneState.position[1];
             pos_des_prev[2] = _DroneState.position[2];
