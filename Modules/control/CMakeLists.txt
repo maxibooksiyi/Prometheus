@@ -97,6 +97,10 @@ add_executable(swarm_ground_station src/swarm_control/swarm_ground_station.cpp)
 add_dependencies(swarm_ground_station prometheus_control_gencpp)
 target_link_libraries(swarm_ground_station ${catkin_LIBRARIES})
 
+add_executable(sender_ground_station src/sender_ground_station.cpp)
+add_dependencies(sender_ground_station prometheus_control_gencpp)
+target_link_libraries(sender_ground_station ${catkin_LIBRARIES})
+
 
 ###### Test File ##########
 #add_executable(px4_fw_controller src/Test/px4_fw_controller.cpp)

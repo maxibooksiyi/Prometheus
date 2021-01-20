@@ -1,0 +1,14 @@
+<launch>
+<include file="$(find prometheus_experiment)/launch/prometheus_px4_realsense.launch">	
+	</include>
+	
+<include file="$(find prometheus_detection)/launch/web_cam0.launch">	
+	</include>
+	
+<include file="$(find prometheus_detection)/launch/ellipse_det.launch">	
+	</include>
+	
+	<node pkg="prometheus_mission" type="circle_crossing" name="circle_crossing" output="screen" launch-prefix="gnome-terminal --tab --">	
+	</node>	
+</launch>
+
