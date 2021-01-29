@@ -234,7 +234,8 @@ int main(int argc, char **argv)
         Command_Now.Reference_State.yaw_ref             = 0;
         command_pub.publish(Command_Now);
         cout << "Takeoff ..."<<endl;
-        ros::Duration(3.0).sleep();
+       // ros::Duration(3.0).sleep();
+        ros::Duration(4.0).sleep();
 
         ros::spinOnce();
     }
@@ -300,7 +301,7 @@ int main(int argc, char **argv)
             pos_des_prev[2] = _DroneState.position[2];
             cout <<"[autonomous_landing]: Lost the Landing Pad. "<< endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Lost the Landing Pad.");
-        }else if(abs(landpad_det.pos_body_frame[2]) < 0.4)//(_DroneState.position[2]<0.4)
+        }else if(abs(landpad_det.pos_body_frame[2]) < 0.3)//(_DroneState.position[2]<0.4)
         {
             cout <<"[autonomous_landing]: Reach the lowest height. "<< endl;
             pub_message(message_pub, prometheus_msgs::Message::NORMAL, NODE_NAME, "Reach the lowest height.");
