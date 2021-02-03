@@ -136,6 +136,11 @@ add_executable(autonomous_landing_gps_qiyuhua autonomous_landing/autonomous_land
 add_dependencies(autonomous_landing_gps_qiyuhua prometheus_mission_gencpp)
 target_link_libraries(autonomous_landing_gps_qiyuhua ${catkin_LIBRARIES})
 
+add_executable(circle_crossing_gps circle_crossing/circle_crossing_gps.cpp)
+add_dependencies(circle_crossing_gps prometheus_mission_gencpp)
+target_link_libraries(circle_crossing_gps ${catkin_LIBRARIES})
+
+
 
 #############
 ## Install ##
